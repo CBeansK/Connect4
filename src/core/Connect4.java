@@ -1,43 +1,8 @@
 package core;
 
-import java.util.ArrayList;
-import java.util.Objects;
+import java.util.Arrays;
 
 public class Connect4 {
-    private class Column{
-        private final int height;
-        private final ArrayList<Character> column;
-        private int lastTop;
-
-        // creates a new column of specified height
-        // could potentially create non-square boards with varying column sizes
-        public Column(int height){
-            this.height = height;
-            this.column = new ArrayList<>(height);
-
-            // populate columns
-            for(int i = 0; i < height; i++){
-                this.column.add(' ');
-            }
-            this.lastTop = 0;
-        }
-        // returns the column for proper encapsulation
-        public ArrayList<Character> getColumn(){
-            return this.column;
-        }
-
-        // Places a piece inside the column
-        public boolean placePiece(char piece){
-            if (lastTop + 1 > height){
-                System.out.println("Cannot add a piece to full column.");
-                return false;
-            }
-
-            column.set((height - 1) - lastTop, piece);
-            this.lastTop++;
-            return true;
-        }
-    }
 
     private final Column[] board;
 
@@ -70,11 +35,15 @@ public class Connect4 {
      * @return true         piece fulfills winning conditions
      * @return false        piece does not fulfill winning conditions
      */
-    public boolean checkForWin(int col, char piece){
-        return (horizontalWin(piece, col) ||
-                verticalWin(piece, col) ||
-                checkForwardsDiagonalWin(piece, col) ||
-                checkBackwardsDiagonalWin(piece, col));
+    public int checkForWin(int col, char piece){
+        int[] moves = {
+                verticalWin(piece, col),
+                horizontalWin(piece, col),
+                checkBackwardsDiagonalWin(piece, col),
+                checkForwardsDiagonalWin(piece, col)
+        };
+
+        return Arrays.stream(moves).max().getAsInt();
     }
     //TODO: refactor winning conditions to separate function
     public boolean placePiece(int col, char piece){
@@ -98,15 +67,15 @@ public class Connect4 {
         @return true        4 pieces are horizontally aligned
                 false       4 pieces are not horizontally aligned
      */
-    private boolean horizontalWin(char piece, int row){
+    public int horizontalWin(char piece, int row){
         // find current height
-        int currentHeight = board[row].column.lastIndexOf(piece);
+        int currentHeight = board[row].getColumn().lastIndexOf(piece);
 
         // get left-most index
         int minIndex = getLeftMostIndex(piece, currentHeight, row);
 
         // left most piece
-        char currentPiece = board[minIndex].column.get(currentHeight);
+        char currentPiece = board[minIndex].getColumn().get(currentHeight);
         assert(currentPiece == piece) : "Failed to get left-most piece";
 
         // iterate to find horizontal row of 4
@@ -115,14 +84,14 @@ public class Connect4 {
         while (counter < 4){
             // make sure we don't go out of bounds
             if (minIndex + counter >= board.length){
-                return false;
+                break;
             }
             // get next piece
-            currentPiece = board[minIndex + counter].column.get(currentHeight);
+            currentPiece = board[minIndex + counter].getColumn().get(currentHeight);
 
             // check if next piece is equal to the piece we put
             if (currentPiece != piece){
-                return false;
+                break;
             } else {
                 counter++;
             }
@@ -130,11 +99,10 @@ public class Connect4 {
 
         // if counter has reached 4, we know we're at the right piece
         // assert here for debugging
-        assert(counter == 4) : "Failed to increment counter properly";
-        return true;
+        return counter;
     }
 
-    private boolean verticalWin(char piece, int col){
+    public int verticalWin(char piece, int col){
         // get current column and height
         // current column is col
         // current height is the last piece placed in the column
@@ -147,21 +115,19 @@ public class Connect4 {
         while(counter < 4){
             // make sure we don't go out of bounds
             if (bottomHeight - counter < 0){
-                return false;
+                break;
             }
             // get next piece
             char currentPiece = board[col].getColumn().get(bottomHeight - counter);
 
             // check if next piece is equal to the piece we put
             if (currentPiece != piece){
-                return false;
+                break;
             } else {
                 counter++;
             }
         }
-
-        assert (counter == 4) : "Failed to increment counter properly";
-        return true;
+        return counter;
     }
 
     private int getLeftMostIndex(char piece, int currentHeight, int rowIndex) {
@@ -170,7 +136,7 @@ public class Connect4 {
         char leftPiece = piece;
         while (leftPiece == piece && rowIndex > 0){
             // check if leftmost piece is the same
-            leftPiece = board[rowIndex - 1].column.get(currentHeight);
+            leftPiece = board[rowIndex - 1].getColumn().get(currentHeight);
             if(leftPiece == piece){
                 //leftPiece = board[rowIndex - 1].column.get(currentHeight);
                 rowIndex = rowIndex - 1;
@@ -198,7 +164,7 @@ public class Connect4 {
         return height;
     }
 
-    private boolean checkForwardsDiagonalWin(char piece, int col){
+    public int checkForwardsDiagonalWin(char piece, int col){
         // get current height in col
         int currentHeight = board[col].getColumn().indexOf(piece);
         // get bottom-left diagonal piece
@@ -210,21 +176,21 @@ public class Connect4 {
         // do counter to check pieces
         int counter = 1;
         while (counter < 4){
-            if ((minCol + 1) > board.length - 1 || minRow - 1 < 0) return false;
+            if ((minCol + 1) > board.length - 1 || minRow - 1 < 0) break;
             char nextPiece = board[minCol + counter].getColumn().get(minRow - counter);
 
             if (nextPiece == piece){
                 counter++;
             } else {
-                return false;
+                break;
             }
         }
         // check board[col + 1][row - 1]
 
-        return true;
+        return counter;
     }
 
-    private boolean checkBackwardsDiagonalWin(char piece, int col){
+    public int checkBackwardsDiagonalWin(char piece, int col){
         // get current height in col
         int currentHeight = board[col].getColumn().indexOf(piece);
         // get bottom-left diagonal piece
@@ -236,18 +202,18 @@ public class Connect4 {
         // do counter to check pieces
         int counter = 1;
         while (counter < 4){
-            if ((minCol + counter) > board.length - 1 || minRow + counter > board.length - 1) return false;
+            if ((minCol + counter) > board.length - 1 || minRow + counter > board.length - 1) break;
             char nextPiece = board[minCol + counter].getColumn().get(minRow + counter);
 
             if (nextPiece == piece){
                 counter++;
             } else {
-                return false;
+                break;
             }
         }
         // check board[col + 1][row - 1]
 
-        return true;
+        return counter;
     }
 
 
@@ -300,6 +266,9 @@ public class Connect4 {
         return new int[]{minColIndex, minRowIndex};
     }
 
+    public Column[] getBoard(){
+        return this.board;
+    }
     /**
      *  @method printBoard
      *
@@ -311,7 +280,7 @@ public class Connect4 {
         // etc etc...
         for(int i = 0; i < board.length; i++){
             for (Column column : board) {
-                System.out.printf("| %c |", column.column.get(i));
+                System.out.printf("| %c |", column.getColumn().get(i));
             }
             System.out.println();
         }
